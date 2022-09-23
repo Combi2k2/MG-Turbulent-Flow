@@ -24,21 +24,21 @@ class MGConvLayer(nn.Module):
 		self.maxpool = nn.MaxPool2d(2, stride = 2)
 		self.padding = self.kernel_size[0] // 2, self.kernel_size[1] // 2
 
-        for i in range(cur_start_level, cur_end_level + 1):
+		for i in range(cur_start_level, cur_end_level + 1):
 			sum_input_chan = 0
 			iprev = i - prev_start_level
-            if self._check_in_range(iprev - 1): sum_input_chan += input_feature_chan
+			if self._check_in_range(iprev - 1): sum_input_chan += input_feature_chan
 			if self._check_in_range(iprev):     sum_input_chan += input_feature_chan
-            if self._check_in_range(iprev + 1): sum_input_chan += input_feature_chan
+			if self._check_in_range(iprev + 1): sum_input_chan += input_feature_chan
 
 			self.convs.append(nn.Sequential(nn.Conv2d(in_channels  = sum_input_chan,
 													  out_channels = output_feature_chan,
 													  kernel_size  = self.kernel_size,
 													  padding      = self.padding), nn.ReLU()))
 		
-        	self.batchnorms.append(nn.BatchNorm2d(output_feature_chan))          
+			self.batchnorms.append(nn.BatchNorm2d(output_feature_chan))          
 
-    def forward(self, prev_grids):
+	def forward(self, prev_grids):
 		output_grids = []
 		lstm_states = []
 		output_dims = []
@@ -55,13 +55,13 @@ class MGConvLayer(nn.Module):
 				concat_grid = prev_up
 			
 			if self._check_in_range(iprev):
-				if concat_grid:	concat_grid = torch.cat([concat_grid, prev_grids[iprev]], dim = 1)
-				else:			concat_grid = prev_grids[iprev]
+				if concat_grid is None:	concat_grid = prev_grids[iprev]
+				else:					concat_grid = torch.cat([concat_grid, prev_grids[iprev]], dim = 1)
 
 			if self._check_in_range(iprev + 1):
 				prev_down = self.maxpool(prev_grids[iprev + 1]) #tf.layers.max_pooling2d(prev_grids[iprev+1],[2,2],2)
-				if concat_grid:	concat_grid = torch.cat([concat_grid, prev_down], dim = 1)
-				else:			concat_grid = prev_down
+				if concat_grid is None:	concat_grid = prev_down
+				else:					concat_grid = torch.cat([concat_grid, prev_down], dim = 1)
 			
 			level_ind = i - self.cur_start_level
 
@@ -71,6 +71,6 @@ class MGConvLayer(nn.Module):
 			output_grids.append(outputs)
 		
 		return output_dims, output_grids
-    
-    def _check_in_range(self, i):
-        return (i >= 0) and (i < self.num_input_grids)
+
+	def _check_in_range(self, i):
+		return (i >= 0) and (i < self.num_input_grids)
