@@ -31,10 +31,10 @@ class MGMemLayer(nn.Module):
 
 			if self._check_in_range(iprev - 1): sum_input_chan += input_feature_chan
 			if self._check_in_range(iprev):     sum_input_chan += input_feature_chan
-            if self._check_in_range(iprev + 1): sum_input_chan += input_feature_chan
+			if self._check_in_range(iprev + 1): sum_input_chan += input_feature_chan
 
 			self.convlstms.append(ConvLSTM(input_dim = sum_input_chan,
-										   output_dim = output_feature_chan,
+										   hidden_dim = output_feature_chan,
 										   kernel_size = self.kernel_size,
 										   num_layers = 1,
 										   batch_first = True,
@@ -60,13 +60,13 @@ class MGMemLayer(nn.Module):
 				concat_grid = prev_up
 			
 			if self._check_in_range(iprev):
-				if concat_grid:	concat_grid = torch.cat([concat_grid, prev_grids[iprev]], dim = 1)
-				else:			concat_grid = prev_grids[iprev]
+				if concat_grid is None:	concat_grid = prev_grids[iprev]
+				else:					concat_grid = torch.cat([concat_grid, prev_grids[iprev]], dim = 1)
 
 			if self._check_in_range(iprev + 1):
 				prev_down = self.maxpool(prev_grids[iprev + 1]) #tf.layers.max_pooling2d(prev_grids[iprev+1],[2,2],2)
-				if concat_grid:	concat_grid = torch.cat([concat_grid, prev_down], dim = 1)
-				else:			concat_grid = prev_down
+				if concat_grid is None:	concat_grid = prev_down
+				else:					concat_grid = torch.cat([concat_grid, prev_down], dim = 1)
 
 			_, chan, height, width = concat_grid.size()
 			concat_grid_reshaped = concat_grid.view(-1, seq_len, chan, height, width)
@@ -87,4 +87,4 @@ class MGMemLayer(nn.Module):
 		return  output_dims, output_grids, lstm_states
 	
 	def _check_in_range(self, i):
-        return (i >= 0) and (i < self.num_input_grids)
+		return (i >= 0) and (i < self.num_input_grids)
