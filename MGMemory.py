@@ -5,6 +5,21 @@ from torch.nn.functional import upsample
 from convlstm import ConvLSTM
 
 class MGMemLayer(nn.Module):
+	"""
+    Input:
+		A tuple of grids with different resolution, and seq_len T
+		One grid is a tensor of size B * T, C, H, W
+    Output:
+        A tuple of grids with same dimensions.
+		The resolution of result grids depend on the index of level in the pyramid.
+    Example:
+        >> model = MGMemLayer(2, 3, 2, 3, 1, 1, 0)
+        >> inputs = [
+				torch.randn(16, 1, 4, 4),
+				torch.randn(16, 1, 8, 8)
+			]
+        >> _, output_grids, lstm_states = model(x, 16)
+    """
 	def __init__(self, prev_start_level, prev_end_level, cur_start_level, cur_end_level, input_feature_chan, output_feature_chan, lay_ind):
 		super(MGMemLayer, self).__init__()
 		self.nb_levels = cur_end_level - cur_start_level + 1
@@ -77,14 +92,25 @@ class MGMemLayer(nn.Module):
 			lstm_state   = lstm_state[0]
 
 			_, _, chan, height, width = lstm_outputs.size()
-			lstm_outputs_reshaped = lstm_outputs.view(-1,chan,height,width)
+			lstm_outputs_reshaped = lstm_outputs.view(-1, chan, height, width)
 			lstm_outputs_bn = self.batchnorms[level_ind](lstm_outputs_reshaped)
 
 			output_grids.append(lstm_outputs_bn)
 			lstm_states.append(lstm_state)
-			#lstm_states_ph.append(initial_lstm_state)
 		
 		return  output_dims, output_grids, lstm_states
 	
 	def _check_in_range(self, i):
 		return (i >= 0) and (i < self.num_input_grids)
+
+if __name__ == '__main__':
+	model = MGMemLayer(2, 3, 2, 3, 1, 1, 0)
+
+	inputs = [
+		torch.randn(16, 1, 4, 4),
+		torch.randn(16, 1, 8, 8)
+	]
+	output_dims, output_grids, lstm_states = model(inputs, 16)
+
+	print(output_grids[0].shape)
+	print(output_grids[1].shape)

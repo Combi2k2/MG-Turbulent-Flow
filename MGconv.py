@@ -74,3 +74,15 @@ class MGConvLayer(nn.Module):
 
 	def _check_in_range(self, i):
 		return (i >= 0) and (i < self.num_input_grids)
+
+if __name__ == '__main__':
+	model = MGConvLayer(2, 3, 2, 3, 1, 2, 0)
+
+	inputs = [
+		torch.randn(16, 1, 4, 4),
+		torch.randn(16, 1, 8, 8)
+	]
+	_, output = model(inputs)
+
+	print(output[0].shape)
+	print(output[1].shape)
