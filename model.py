@@ -61,7 +61,7 @@ class MG(nn.Module):
 			
 			prev_grids = output_grids_list[-1]
 		
-		return  prev_grids
+		return  prev_grids[0]
 
 	def residual_conn(self, x, y):
 		_, chan_x, _, _ = x.size()
@@ -74,7 +74,7 @@ class MG(nn.Module):
 if __name__ == '__main__':
 	model = MG(nb_input_chan = 2)
 
-	inputs = torch.randn(2, 16, 2, 64, 64)
+	inputs = torch.randn(2, 10, 2, 64, 64)
 	output = model(inputs)
 
-	print(output[0].shape)
+	print(output.shape)
