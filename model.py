@@ -1,6 +1,5 @@
 import torch
 from torch import nn
-from torch.nn.functional import upsample
 from torch.nn import functional as F
 
 from MGconv import MGConvLayer
@@ -31,9 +30,9 @@ class MG(nn.Module):
 		inputs = inputs.view(-1, chan, height, width)
 
 		input3scales = [
-			upsample(inputs, size = (16, 16), mode = 'nearest'),
-			upsample(inputs, size = (32, 32), mode = 'nearest'),
-			upsample(inputs, size = (64, 64), mode = 'nearest'),
+			F.interpolate(inputs, size = (16, 16), mode = 'nearest'),
+			F.interpolate(inputs, size = (32, 32), mode = 'nearest'),
+			F.interpolate(inputs, size = (64, 64), mode = 'nearest'),
 		]
 		output_grids_list = []
 		prev_grids = input3scales
