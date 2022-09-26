@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.animation import FuncAnimation
 
-data = torch.load('./../rbc_data/sample_2.pt')
+data = torch.load('rbc_data/sample_0.pt')
 data = data.numpy()
 
 fig, ax = plt.subplots()
