@@ -1,6 +1,6 @@
 import torch
 from torch import nn
-from torch.nn.functional import upsample
+from torch.nn.functional import interpolate
 
 class MGConvLayer(nn.Module):
 	def __init__(self, prev_start_level, prev_end_level, cur_start_level, cur_end_level, input_feature_chan, output_feature_chan, lay_ind):
@@ -51,7 +51,7 @@ class MGConvLayer(nn.Module):
 			if self._check_in_range(iprev - 1):
 				prev_spatial_dim = (prev_grids[iprev - 1].shape[2], prev_grids[iprev - 1].shape[3])
 				next_spatial_dim = (prev_spatial_dim[0] * 2, prev_spatial_dim[1] * 2)
-				prev_up = upsample(prev_grids[iprev - 1], size = next_spatial_dim, mode = 'nearest')
+				prev_up = interpolate(prev_grids[iprev - 1], size = next_spatial_dim, mode = 'nearest')
 				concat_grid = prev_up
 			
 			if self._check_in_range(iprev):
@@ -74,3 +74,15 @@ class MGConvLayer(nn.Module):
 
 	def _check_in_range(self, i):
 		return (i >= 0) and (i < self.num_input_grids)
+
+if __name__ == '__main__':
+	model = MGConvLayer(2, 3, 2, 3, 1, 2, 0)
+
+	inputs = [
+		torch.randn(16, 1, 4, 4),
+		torch.randn(16, 1, 8, 8)
+	]
+	_, output = model(inputs)
+
+	print(output[0].shape)
+	print(output[1].shape)

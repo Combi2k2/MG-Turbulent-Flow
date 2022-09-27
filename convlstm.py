@@ -106,10 +106,10 @@ class ConvLSTM(nn.Module):
         for i in range(0, self.num_layers):
             cur_input_dim = self.input_dim if i == 0 else self.hidden_dim[i - 1]
 
-            cell_list.append(ConvLSTMCell(input_dim=cur_input_dim,
-                                          hidden_dim=self.hidden_dim[i],
-                                          kernel_size=self.kernel_size[i],
-                                          bias=self.bias))
+            cell_list.append(ConvLSTMCell(input_dim   = cur_input_dim,
+                                          hidden_dim  = self.hidden_dim[i],
+                                          kernel_size = self.kernel_size[i],
+                                          bias        = self.bias))
 
         self.cell_list = nn.ModuleList(cell_list)
 
@@ -148,15 +148,13 @@ class ConvLSTM(nn.Module):
         cur_layer_input = input_tensor
 
         for layer_idx in range(self.num_layers):
-
             h, c = hidden_state[layer_idx]
             output_inner = []
             for t in range(seq_len):
-                h, c = self.cell_list[layer_idx](input_tensor=cur_layer_input[:, t, :, :, :],
-                                                 cur_state=[h, c])
+                h, c = self.cell_list[layer_idx](input_tensor = cur_layer_input[:, t, :, :, :], cur_state = [h, c])
                 output_inner.append(h)
 
-            layer_output = torch.stack(output_inner, dim=1)
+            layer_output = torch.stack(output_inner, dim = 1)
             cur_layer_input = layer_output
 
             layer_output_list.append(layer_output)
