@@ -1,5 +1,6 @@
 import torch
-from torch import nn
+import torch.nn as nn
+import torch.nn.functional as F
 
 from model import MG
 
@@ -46,13 +47,26 @@ def arg_def():
     parser = argparse.ArgumentParser()
     parser.add_argument("--checkpoint_dir", type = str, default = "checkpoints")
     parser.add_argument("--batch_size",     type = int, default = 32)
+    parser.add_argument("--regulizer",      type = int, default = 0)
+
     args = parser.parse_args()
     return args
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-def run_train(train_ds, model, criterion, optimizer, epoch, args):
+def compute_metrics(output, target):
+    MSE_loss = F.mse_loss(output, target)
+
+    divergence = output[:,:,2:,1:-1] + output[:,:,:-2,1:-1] + output[:,:,1:-1,2:] + output[:,:,1:-1,:-2] - 4 * output[:,:,1:-1,1:-1]
+    divergence = torch.mean(divergence ** 2)
+
+    return  {
+        'MSE_Loss': MSE_loss,
+        'Divergence': divergence
+    }
+
+def run_train(train_ds, model, optimizer, epoch, args):
     #model.train() 
     train_loader = DataLoader(train_ds, batch_size = args.batch_size, shuffle = True)
 
@@ -60,45 +74,41 @@ def run_train(train_ds, model, criterion, optimizer, epoch, args):
         inputs = inputs.to(args.device)
         target = target.to(args.device)
 
-        output = model(inputs)
+        output  = model(inputs)
+        metrics = compute_metrics(output, target)
 
-        divergence = torch.sum(output, dim = 1)
-        divergence = torch.sum(divergence ** 2) / 4096
-
-        loss = criterion(output, target)
-
-        if (batch_idx % 20 == 19):
-            print('(Epoch %d) Batch %d: MSE = %f, Divergence = %f'%(epoch, batch_idx + 1, loss, divergence))
-
-        loss += 0.1 * divergence
+        if (batch_idx % 50 == 49):
+            print('(Epoch %d) Batch %d:'%(epoch, batch_idx + 1), end = "")
+            print(' MSE = %f'%metrics['MSE_Loss'], end = '')
+            print(' Divergence = %f'%metrics['Divergence'])
+        
+        loss = metrics['MSE_Loss'] + (0.1 * metrics['Divergence'] if args.regulizer else 0)
 
         optimizer.zero_grad();  loss.backward()
         optimizer.step()
 
-def run_test(test_ds, model, criterion, args):
+def run_test(test_ds, model, args):
     test_loader = DataLoader(test_ds, batch_size = args.batch_size, shuffle = False)
 
-    test_loss = 0
+    test_mse = 0
     test_div = 0
+
+    print("\n\t******** Running Evaluation ********")
     
     with torch.no_grad():
         for batch_idx, (inputs, target) in enumerate(test_loader):
             inputs = inputs.to(args.device)
             target = target.to(args.device)
 
-            output = model(inputs)
+            output  = model(inputs)
+            metrics = compute_metrics(output, target)
 
-            divergence = torch.sum(output, dim = 1)
-            divergence = torch.sum(divergence ** 2) / 4096
-
-            loss = criterion(output, target)
-
-            test_loss += loss
-            test_div += divergence
-
-    print("\t**** Evaluation ****")
-    print("Eval MSE = %f"%(test_loss / (batch_idx + 1)))
-    print("Eval Div = %f"%(test_div / (batch_idx + 1)))
+            test_mse += metrics['MSE_Loss']
+            test_div += metrics['Divergence']
+    
+    print(">> Eval MSE = %f"%(test_mse / (batch_idx + 1)))
+    print(">> Eval DIV = %f"%(test_div / (batch_idx + 1)))
+    print("")
 
 if __name__ == '__main__':
     args = arg_def()
@@ -120,13 +130,12 @@ if __name__ == '__main__':
     model = MG(nb_input_chan = 2).to(args.device)
 
     # Set up hyper parameters
-    learning_rate = 1e-3
+    learning_rate = 2e-5
     batch_size = args.batch_size
     n_epoch = 100
 
-    # Set up optimizer and loss function
-    criterion = nn.MSELoss().to(args.device)
-    optim = torch.optim.Adam(model.parameters(), lr = 1e-3)
+    # Set up optimizer
+    optim = torch.optim.Adam(model.parameters(), lr = learning_rate)
 
     start_epoch = 0
 
@@ -142,8 +151,8 @@ if __name__ == '__main__':
     print("Number of parameters: %d"%count_parameters(model))
 
     for epoch in range(start_epoch, n_epoch):
-        run_train(train_ds, model, criterion, optim, epoch, args)
-        run_test(valid_ds, model, criterion, args)
+        run_train(train_ds, model, optim, epoch, args)
+        run_test(valid_ds, model, args)
 
         torch.save({
             'epoch': epoch,
