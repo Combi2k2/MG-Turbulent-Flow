@@ -53,6 +53,10 @@ class MG(nn.Module):
 
 			prev_grids[i] = prev_grids[i].view(batch, seq_len, chan, height, width)
 			prev_grids[i] = prev_grids[i][:,-1,:,:,:]
+
+			if (i == 3):
+				output_grids_list[-1][0] = self.residual_conn(output_grids_list[-3][1], output_grids_list[-1][0])
+				output_grids_list[-1][1] = self.residual_conn(output_grids_list[-3][2], output_grids_list[-1][1])
 		
 		# generator layers
 		for i in range(5):
