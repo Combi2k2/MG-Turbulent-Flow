@@ -97,8 +97,8 @@ def run_test(test_ds, model, criterion, args):
             test_div += divergence
 
     print("\t**** Evaluation ****")
-    print("Eval MSE = %f"% test_loss / (batch_idx + 1))
-    print("Eval Div = %f"% test_div / (batch_idx + 1))
+    print("Eval MSE = %f"%(test_loss / (batch_idx + 1)))
+    print("Eval Div = %f"%(test_div / (batch_idx + 1)))
 
 if __name__ == '__main__':
     args = arg_def()
