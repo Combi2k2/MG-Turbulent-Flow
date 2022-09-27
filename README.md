@@ -28,3 +28,6 @@ Run the following command to start the training session:
 
 ### Velocity U & V Ground Truth and Prediction
 ![](Compare.gif)
+
+### Reference
+- [TF-Net](https://github.com/Rose-STL-Lab/Turbulent-Flow-Net)
