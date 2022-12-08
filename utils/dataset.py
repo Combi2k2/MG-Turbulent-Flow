@@ -2,32 +2,28 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
 class rbc_data(Dataset):
-    def __init__(self, data_prep, split = 'train', window_size = 16):
-        self.data = []
-        self.len = []
-        self.window_size = window_size
-
-        for flow in data_prep:
-            flow_len = flow.size(0)
-            mock = int(flow_len * 0.1)
-
-            if split == 'train':    self.data.append(flow[mock:])
-            if split == 'valid':    self.data.append(flow[:mock])
-
-            self.len.append(self.data[-1].size(0) - window_size - 1)
+    def __init__(self, data, indices, input_length, output_length):
+        self.data = data
+        self.input_length = input_length
+        self.output_length = output_length
+        self.list_IDs = indices
     
     def __len__(self):
-        return  sum(self.len)
-    
-    def __getitem__(self, index):
-        for i, flow in enumerate(self.data):
-            if (index < self.len[i]):
-                inputs = flow[index : index + self.window_size]
-                target = flow[index + self.window_size + 1]
+        return  len(self.list_IDs)
 
+    def __getitem__(self, index):
+        index = self.list_IDs[index]
+        
+        for flow in self.data:
+            flow_length = flow.size(0) - self.input_length - self.output_length
+            
+            if (index < flow_length):
+                inputs = flow[index: index + self.input_length]
+                target = flow[index + self.input_length: index + self.input_length + self.output_length]
+                
                 return  inputs, target
             
-            index -= self.len[i]
+            index -= flow_length
             
         raise ValueError('Index out of range.')
 
@@ -35,7 +31,7 @@ if __name__ == '__main__':
     import torch
     
     data_prep = [torch.load('data/sample_0.pt')]
-    sample_dt = rbc_data(data_prep, 'train')
+    sample_dt = rbc_data(data_prep, list(range(1000)), 16, 4)
     
     inputs, target = sample_dt[5]
     
