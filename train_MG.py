@@ -7,7 +7,7 @@ import torch.nn.functional as F
 #import matplotlib.pyplot as plt
 import numpy as np
 
-from models.model import MG
+from models.MG_model import MG
 from utils.dataset import rbc_data
 from utils.train import run_train, run_eval
 
@@ -54,13 +54,16 @@ if __name__ == '__main__':
     
     # Set up dataset
     data_prep = [
-        torch.load('rbc_data/sample_0.pt'),
-        torch.load('rbc_data/sample_1.pt'),
-        torch.load('rbc_data/sample_2.pt'),
-        torch.load('rbc_data/sample_3.pt')
+        torch.load('data/sample_0.pt'),
+        torch.load('data/sample_1.pt'),
+        torch.load('data/sample_2.pt'),
+        torch.load('data/sample_3.pt')
     ]
-    train_ds = rbc_data(data_prep, split = 'train')
-    valid_ds = rbc_data(data_prep, split = 'valid')
+    train_indices = list(range(5500))
+    valid_indices = list(range(5500, 6000))
+    
+    train_ds = rbc_data(data_prep, train_indices, 16, 4, False)
+    valid_ds = rbc_data(data_prep, valid_indices, 16, 4, False)
     
     for i in range(start_epoch, n_epoch):
         print(f'Epoch {i + 1}: ')
@@ -82,6 +85,6 @@ if __name__ == '__main__':
             'optim': optim.state_dict(),
             'train_mse': train_mse,
             'valid_mse': valid_mse
-        }, 'TF_Net_checkpoint.pth')
+        }, args.saved_checkpoint)
         
         print(f">>  Eval MSE = {valid_mse[-1]}")

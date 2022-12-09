@@ -72,10 +72,10 @@ if __name__ == '__main__':
     
     # set up dataset
     data_prep = [
-        torch.load('rbc_data/sample_0.pt'),
-        torch.load('rbc_data/sample_1.pt'),
-        torch.load('rbc_data/sample_2.pt'),
-        torch.load('rbc_data/sample_3.pt')
+        torch.load('data/sample_0.pt'),
+        torch.load('data/sample_1.pt'),
+        torch.load('data/sample_2.pt'),
+        torch.load('data/sample_3.pt')
     ]
     train_indices = list(range(5500))
     valid_indices = list(range(5500, 6000))
@@ -108,7 +108,7 @@ if __name__ == '__main__':
                 'optim': optimizer.state_dict(),
                 'train_mse': train_mse,
                 'valid_mse': valid_mse
-            }, 'TF_Net_checkpoint.pth')
+            }, args.saved_checkpoint)
         
         print(f">>  Eval MSE = {valid_mse[-1]}")
 
