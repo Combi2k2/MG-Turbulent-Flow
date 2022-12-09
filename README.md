@@ -33,3 +33,4 @@ Run the following command to start the training session:
 ### Reference
 
 - [TF-Net](https://github.com/Rose-STL-Lab/Turbulent-Flow-Net)
+- [VPTR](https://github.com/XiYe20/VPTR)
