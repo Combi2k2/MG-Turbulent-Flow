@@ -2,11 +2,12 @@ from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
 
 class rbc_data(Dataset):
-    def __init__(self, data, indices, input_length, output_length):
+    def __init__(self, data, indices, input_length, output_length, stack_x):
         self.data = data
         self.input_length = input_length
         self.output_length = output_length
         self.list_IDs = indices
+        self.stack_x = stack_x
     
     def __len__(self):
         return  len(self.list_IDs)
@@ -21,6 +22,9 @@ class rbc_data(Dataset):
                 inputs = flow[index: index + self.input_length]
                 target = flow[index + self.input_length: index + self.input_length + self.output_length]
                 
+                if (self.stack_x):
+                    inputs = inputs.reshape(-1, target.shape[-2], target.shape[-1])
+                
                 return  inputs, target
             
             index -= flow_length
@@ -31,7 +35,7 @@ if __name__ == '__main__':
     import torch
     
     data_prep = [torch.load('data/sample_0.pt')]
-    sample_dt = rbc_data(data_prep, list(range(1000)), 16, 4)
+    sample_dt = rbc_data(data_prep, list(range(1000)), 16, 4, True)
     
     inputs, target = sample_dt[5]
     
