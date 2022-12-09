@@ -27,7 +27,9 @@ Run the following command to start the training session:
 | ```regulizer```      | Apply regulizer (**div W = 0**) when the value is non-zero |
 
 ### Velocity U & V Ground Truth and Prediction
-![](demo/Compare.gif)
+
+![Demo by Multigrid Memory model](demo/Compare.gif)
 
 ### Reference
+
 - [TF-Net](https://github.com/Rose-STL-Lab/Turbulent-Flow-Net)
