@@ -1,6 +1,7 @@
 # MG-Turbulent-Flow
 
 ## [DataSet](https://drive.google.com/drive/folders/1VOtLjfAkCWJePiacoDxC-nrgCREKvrpE?usp=sharing.)
+## [Paper](https://www.overleaf.com/project/63711e51999d2cb512a281c0)
 
 Run the following command to create dataset for our model:
 
@@ -33,3 +34,4 @@ Run the following command to start the training session:
 ### Reference
 
 - [TF-Net](https://github.com/Rose-STL-Lab/Turbulent-Flow-Net)
+- [VPTR](https://github.com/XiYe20/VPTR)
