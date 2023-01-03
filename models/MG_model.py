@@ -2,8 +2,8 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-from .MGconv import MGConvLayer
-from .MGMemory import MGMemLayer
+from MGconv import MGConvLayer
+from MGMemory import MGMemLayer
 
 class MG(nn.Module):
 	def __init__(self, nb_input_chan):
