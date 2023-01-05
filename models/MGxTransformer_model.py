@@ -12,7 +12,7 @@ from MGMemory import MGMemLayer
 from VPTR.VidHRFormer_modules import VidHRFormerBlockEnc
 from VPTR.position_encoding import PositionEmbeddding1D, PositionEmbeddding2D
 
-from .MGBlockEnc import MGBlockEnc
+from MGBlockEnc import MGBlockEnc
 
 class MGxTransformer(nn.Module):
     def __init__(self, frame_shape, num_past_frames = 16, num_future_frames = 4,
@@ -66,18 +66,20 @@ class MGxTransformer(nn.Module):
                                               output_feature_chan = dim2,
                                               lay_ind = i + 1))
 
-            # add encoder
-            start_level, end_level, embed_dim = low2, high2, dim2
-            
-            seq_len = num_past_frames
-            num_heads = 1
-            
-            for i in range(1, int(np.sqrt(embed_dim))):
-                if (embed_dim % i == 0):
-                    num_heads = i
-                    break
+            if dim2 > 2:
+                # add encoder
+                start_level, end_level, embed_dim = low2, high2, dim2
+                
+                seq_len = num_past_frames
+                num_heads = 1
+                
+                for i in range(1, int(np.sqrt(embed_dim)) + 1):
+                    if (embed_dim % i == 0):
+                        num_heads = i
 
-            self.encoders.append(MGBlockEnc(start_level, end_level, embed_dim, seq_len, num_heads))
+                self.encoders.append(MGBlockEnc(start_level, end_level, seq_len, embed_dim, num_heads))
+            else:
+                self.encoders.append(nn.Identity())
         
         for i in range(len(gen_start_levels)):
             if (i): low1, high1, dim1 = gen_start_levels[i - 1], gen_end_levels[i - 1], gen_hidden_dims[i - 1]
@@ -142,9 +144,9 @@ class MGxTransformer(nn.Module):
         else:					return  x[:,:chan_y,:,:] + y
 
 if __name__ == '__main__':
-    model = MGxTransformer(frame_shape = (2, 64, 64))
+    model = MGxTransformer(frame_shape = (2, 64, 64), num_past_frames = 13)
 
-    img = torch.randn(10, 16, 2, 64, 64)
+    img = torch.randn(10, 13, 2, 64, 64)
     out = model(img)
     
     print(out.shape)

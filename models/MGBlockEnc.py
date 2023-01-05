@@ -1,6 +1,10 @@
 from VPTR.VidHRFormer_modules import VidHRFormerBlockEnc
 from VPTR.position_encoding import PositionEmbeddding1D, PositionEmbeddding2D
 from torch import nn
+from torch import Tensor
+
+import torch
+import torch.nn.functional as F
 
 class MGBlockEnc(nn.Module):
     def __init__(self, start_level, end_level, seq_len, embed_dim, num_heads, window_size = 7, dropout = 0., drop_path = 0., Spatial_FFN_hidden_ratio = 4, far = True, rpe = True):
@@ -13,50 +17,61 @@ class MGBlockEnc(nn.Module):
         pos1d = PositionEmbeddding1D()
         pos2d = PositionEmbeddding2D()
         
+        middle = 1 << ((start_level + end_level) // 2)
+        
         temporal_pos = pos1d(L = seq_len, N = 1, E = embed_dim)[:, 0, :]
+        spatial_pos = pos2d(N = 1, E = embed_dim, H = middle, W = middle)[0].permute(1, 2, 0)
+        
         self.register_buffer('temporal_pos', temporal_pos)
+        self.register_buffer('spatial_pos', spatial_pos)
         
-        self.spatial_pos = []
-        self.encoders = nn.ModuleList()
+        args = [middle, middle, embed_dim, num_heads]
+        kwargs = {
+            'window_size': window_size,
+            'dropout' : dropout,
+            'drop_path': drop_path,
+            'Spatial_FFN_hidden_ratio': Spatial_FFN_hidden_ratio,
+            'far': far,
+            'rpe': rpe
+        }
         
-        for i in range(start_level, end_level + 1):
-            args = [1 << i, 1 << i, embed_dim, num_heads]
-            kwargs = {
-                'window_size': window_size,
-                'dropout' : dropout,
-                'drop_path': drop_path,
-                'Spatial_FFN_hidden_ratio': Spatial_FFN_hidden_ratio,
-                'far': far,
-                'rpe': rpe
-            }
-            
-            self.encoders.append(VidHRFormerBlockEnc(*args, **kwargs))
-            self.spatial_pos.append(pos2d(N = 1, E = embed_dim, H = (1 << i), W = (1 << i))[0, ...].permute(1, 2, 0))
+        self.encoder = VidHRFormerBlockEnc(*args, **kwargs)
     
     def forward(self, grids):
+        middle = 1 << ((self.start_level + self.end_level) // 2)
+        grid_concat = []
+        
+        for grid in grids:
+            _, C, H, W = grid.size()
+            grid = F.interpolate(grid, size = (middle, middle), mode = 'nearest')
+            grid = grid.view(-1, self.seq_len, C, middle, middle)
+            grid_concat.append(grid)
+
+        grid_concat = torch.concat(grid_concat, dim = 0)
+        grid_encoded = self.encoder(grid_concat, self.spatial_pos, self.temporal_pos)
+        
         output_grids = []
         
-        for i, encoder in enumerate(self.encoders):
-            _, C, H, W = grids[i].shape
+        for i in range(len(grids)):
+            NT, C, H, W = grids[i].size()
+            N = NT // self.seq_len
             
-            grids_reshaped = grids[i].view(-1, self.seq_len, C, H, W)
-            grids_encoded = encoder(grids_reshaped, self.spatial_pos[i], self.temporal_pos)
+            output_grid = grid_encoded[i * N: i * N + N].reshape(NT, C, middle, middle)
+            output_grid = F.interpolate(output_grid, size = (H, W), mode = 'nearest')
             
-            N, T, C, H, W = grids_encoded.shape
-            
-            output_grids.append(grids_encoded.reshape(N * T, C, H, W))
+            output_grids.append(output_grid)
         
         return output_grids
 
 if __name__ == '__main__':
     import torch
     
-    model = MGBlockEnc(4, 6, 13, 20, 4)
+    model = MGBlockEnc(5, 7, 13, 32, 4)
     
     inputs = [
-        torch.randn(130, 20, 16, 16),
-        torch.randn(130, 20, 32, 32),
-        torch.randn(130, 20, 64, 64)
+        torch.randn(130, 32, 32, 32),
+        torch.randn(130, 32, 64, 64),
+        torch.randn(130, 32, 128, 128)
     ]
     
     outputs = model(inputs)
