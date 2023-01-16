@@ -8,3 +8,4 @@ Pillow
 tensorflow
 torchvision
 tqdm
+h5py
