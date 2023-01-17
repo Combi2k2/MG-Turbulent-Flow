@@ -3,3 +3,6 @@
 *__pycache__*
 *data/*
 *.DS_Store*
+*.hdf5
+*.h5
+*.pt
