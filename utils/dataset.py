@@ -34,7 +34,8 @@ class rbc_data(Dataset):
 if __name__ == '__main__':
     import torch
     
-    data_prep = [torch.load('data/sample_0.pt')]
+    data_prep = [torch.load(r'dataset\2D\CFD\Turbulent_Flow\rbc_data\sample_0.pt')]
+    print(data_prep[0].shape)
     sample_dt = rbc_data(data_prep, list(range(1000)), 16, 4, True)
     
     inputs, target = sample_dt[5]
