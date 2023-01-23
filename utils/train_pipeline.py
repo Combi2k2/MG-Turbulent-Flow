@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import numpy as np
 
 from train import run_train, run_eval
+from datetime import datetime
 
 import logging.config
 import logging
@@ -72,16 +73,19 @@ class Trainer:
     
     def train(self):
         # check if our model is Auto Regressive
-        sample_input, sample_target = train_ds[0]
-        
-        if (len(sample_input.shape) != len(sample_target.shape)):
+        sample_input, sample_target = self.train_ds[0]
+        sample_output = self.model(sample_input[None, :])
+        print(sample_input.shape, sample_output.shape)
+
+        if (len(sample_input.shape) + 1 != len(sample_output.shape)):
             one_output_frame = True
         else:
             one_output_frame = False
+        print(one_output_frame)
         # done checking
 
         for i in range(self.start_epoch + 1, n_epoch):
-            logging.info(f'Epoch {i + 1}:')
+            logging.info(f'Epoch {i + 1}: Start at {datetime.now()}')
             # run epochs:
             self.model.train()
             self.train_mse.append(run_train(self.train_ds, self.model, self.optim, nn.MSELoss(), self.args, one_output_frame = one_output_frame))
@@ -107,6 +111,7 @@ class Trainer:
             }, self.args.saved_checkpoint)
 
             logging.info(f'>>  Eval MSE = {self.valid_mse[-1]}')
+            logging.info(f'Epoch {i + 1}: Finished at {datetime.now()}')
 
 if __name__ == '__main__':
     from dataset import rbc_data
