@@ -30,9 +30,9 @@ class MG(nn.Module):
 		inputs = inputs.view(-1, chan, height, width)
 
 		input3scales = [
-			F.interpolate(inputs, size = (16, 16), mode = 'nearest'),
-			F.interpolate(inputs, size = (32, 32), mode = 'nearest'),
-			F.interpolate(inputs, size = (64, 64), mode = 'nearest'),
+			F.interpolate(inputs, size = (height // 4, height // 4), mode = 'nearest'),
+			F.interpolate(inputs, size = (height // 2, width // 2), mode = 'nearest'),
+			F.interpolate(inputs, size = (height, width), mode = 'nearest'),
 		]
 		output_grids_list = []
 		prev_grids = input3scales
@@ -78,7 +78,7 @@ class MG(nn.Module):
 if __name__ == '__main__':
 	model = MG(nb_input_chan = 2)
 
-	inputs = torch.randn(2, 10, 2, 64, 64)
+	inputs = torch.randn(16, 10, 2, 512, 512)
 	output = model(inputs)
 
 	print(output.shape)

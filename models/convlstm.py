@@ -183,3 +183,29 @@ class ConvLSTM(nn.Module):
         if not isinstance(param, list):
             param = [param] * num_layers
         return param
+
+class CLSTM(nn.Module):
+    def __init__(self, channels=2, hidden_dim = [64], num_layers=1):
+        super(CLSTM, self).__init__()
+        self.clstm= ConvLSTM(
+                         input_dim = channels,
+                         hidden_dim = hidden_dim,
+                         kernel_size = (3, 3),
+                         num_layers = num_layers,
+                         batch_first = True,
+                         bias = True,
+                         return_all_layers=False)
+        
+        self.output_layer = nn.Conv2d(in_channels = hidden_dim[-1], out_channels = channels,
+                                kernel_size = 3, padding = 1)
+        
+    def forward(self, xx):
+        out = self.clstm(xx)[1][0][0]
+        out = self.output_layer(out)
+        return out
+
+if __name__ == "__main__":
+    x = torch.rand((32, 17, 2, 64, 64))
+    convlstm = CLSTM()
+    output = convlstm(x)
+    print(output.shape) # 2 x 64 x 64

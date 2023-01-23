@@ -72,11 +72,11 @@ class TF_Net(nn.Module):
     def forward(self, xx):
         xx_len = xx.shape[1]
         # u = u_mean + u_tilde + u_prime
-        u_tilde = self.spatial_filter(xx.reshape(xx.shape[0]*xx.shape[1], 1, 64, 64)).reshape(xx.shape[0], xx.shape[1], 64, 64)
+        u_tilde = self.spatial_filter(xx.reshape(xx.shape[0]*xx.shape[1], 1, xx.shape[3], xx.shape[3])).reshape(xx.shape[0], xx.shape[1], xx.shape[3], xx.shape[3])
         # u_prime
         u_prime = (xx - u_tilde)[:,(xx_len - self.input_channels):]
         # u_mean
-        u_tilde2 = u_tilde.reshape(u_tilde.shape[0], u_tilde.shape[1]//2, 2, 64, 64)
+        u_tilde2 = u_tilde.reshape(u_tilde.shape[0], u_tilde.shape[1]//2, 2, xx.shape[3], xx.shape[3])
         u_mean = []
 
         for i in range(xx_len//2 - self.input_channels//2, xx_len//2):
@@ -84,7 +84,7 @@ class TF_Net(nn.Module):
                                   self.temporal_filter(u_tilde2[:,i-self.time_range+1:i+1,1,:,:]).unsqueeze(2)], dim = 2)
             u_mean.append(cur_mean)
         u_mean = torch.cat(u_mean, dim = 1)
-        u_mean = u_mean.reshape(u_mean.shape[0], -1, 64, 64)
+        u_mean = u_mean.reshape(u_mean.shape[0], -1, xx.shape[3], xx.shape[3])
         # u_tilde
         u_tilde = u_tilde[:,(self.time_range-1)*2:] - u_mean
         out_conv1_mean, out_conv2_mean, out_conv3_mean, out_conv4_mean = self.encoder1(u_mean)
@@ -112,7 +112,7 @@ if __name__ == '__main__':
                    dropout_rate = dropout_rate,
                    time_range = time_range)
     
-    inputs = torch.randn(16, (input_length + time_range - 1) * 2, 64, 64)
+    inputs = torch.randn(16, (input_length + time_range - 1) * 2, 512, 512)
     output = model(inputs)
 
     print(output.shape)
