@@ -27,7 +27,7 @@ class MG(nn.Module):
         exponent = math.ceil(np.log(max(H, W)) / np.log(2))
         
         if (mem_hidden_dims is None):   mem_hidden_dims = [C << i for i in range(5)]
-        if (gen_hidden_dims is None):   gen_hidden_dims = [(C * num_future_frames) << i for i in range(4, -1, -1)]
+        if (gen_hidden_dims is None):   gen_hidden_dims = [C << i for i in range(4, -1, -1)]
         
         if (mem_start_levels is None):  mem_start_levels = [exponent - 1] * 5
         if (gen_start_levels is None):  gen_start_levels = [exponent - 1] * 5
@@ -59,10 +59,10 @@ class MG(nn.Module):
                                               lay_ind = i + 1))
         
         for i in range(len(gen_start_levels)):
-            if (i): low1, high1, dim1 = gen_start_levels[i - 1], gen_end_levels[i - 1], gen_hidden_dims[i - 1]
-            else:   low1, high1, dim1 = mem_start_levels[-1], mem_end_levels[-1], mem_hidden_dims[-1]
+            if (i): low1, high1, dim1 = gen_start_levels[i - 1], gen_end_levels[i - 1], gen_hidden_dims[i - 1] * num_future_frames
+            else:   low1, high1, dim1 = mem_start_levels[-1], mem_end_levels[-1], mem_hidden_dims[-1] * num_past_frames
             
-            low2, high2, dim2 = gen_start_levels[i], gen_end_levels[i], gen_hidden_dims[i]
+            low2, high2, dim2 = gen_start_levels[i], gen_end_levels[i], gen_hidden_dims[i] * num_future_frames
             
             self.gen_layers.append(MGConvLayer(prev_start_level = low1,
                                                prev_end_level = high1,
@@ -98,9 +98,7 @@ class MG(nn.Module):
         
         for i in range(len(prev_grids)):
             _, chan, width, height = prev_grids[i].size()
-            
-            prev_grids[i] = prev_grids[i].view(N, T, chan, height, width)
-            prev_grids[i] = torch.mean(prev_grids[i], dim = 1)
+            prev_grids[i] = prev_grids[i].view(N, T * chan, height, width)
             
         # generator layers
         for layer in self.gen_layers:
@@ -123,9 +121,11 @@ class MG(nn.Module):
         else:					return  x[:,:chan_y,:,:] + y
 
 if __name__ == '__main__':
-	model = MG(frame_shape = (2, 64, 64))
+	model = MG(frame_shape = (2, 64, 64),
+            mem_hidden_dims = [4, 4, 8, 8, 16],
+            gen_hidden_dims = [8, 8, 4, 4, 2])
 
-	inputs = torch.randn(13, 16, 2, 64, 64)
+	inputs = torch.randn(32, 16, 2, 64, 64)
 	output = model(inputs)
 
 	print(output.shape)
