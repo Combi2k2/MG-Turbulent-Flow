@@ -22,7 +22,7 @@ def arg_def(default_checkpoint_dir = 'checkpoints', model_name = 'MG_model'):
     
     args = parser.parse_args()
     args.device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    args.saved_checkpoint = os.path.join(args.checkpoint_dir, model_name + '_checpoint.pth')
+    args.saved_checkpoint = os.path.join(args.checkpoint_dir, model_name + '_checkpoint.pth')
     
     return args
 
@@ -72,26 +72,14 @@ class Trainer:
             self.valid_mse = []
     
     def train(self):
-        # check if our model is Auto Regressive
-        sample_input, sample_target = self.train_ds[0]
-        sample_output = self.model(sample_input[None, :])
-        print(sample_input.shape, sample_output.shape)
-
-        if (len(sample_input.shape) + 1 != len(sample_output.shape)):
-            one_output_frame = True
-        else:
-            one_output_frame = False
-        print(one_output_frame)
-        # done checking
-
         for i in range(self.start_epoch + 1, n_epoch):
             logging.info(f'Epoch {i + 1}: Start at {datetime.now()}')
             # run epochs:
             self.model.train()
-            self.train_mse.append(run_train(self.train_ds, self.model, self.optim, nn.MSELoss(), self.args, one_output_frame = one_output_frame))
+            self.train_mse.append(run_train(self.train_ds, self.model, self.optim, nn.MSELoss(), self.args))
 
             self.model.eval()
-            mse, _, _ = run_eval(self.valid_ds, self.model, nn.MSELoss(), self.args, one_output_frame = one_output_frame)
+            mse, _, _ = run_eval(self.valid_ds, self.model, nn.MSELoss(), self.args)
             
             self.valid_mse.append(mse)
             
@@ -137,11 +125,11 @@ if __name__ == '__main__':
     Optim = torch.optim.Adam(model.parameters(), lr = learning_rate)
 
     args = arg_def(model_name = 'test')
+    args.batch_size = 2
 
     # Set up dataset
     data_prep = [
-        torch.load('dataset/2D/CFD/Turbulent_Flow/rbc_data/sample_0.pt'),
-        torch.load('dataset/2D/CFD/Turbulent_Flow/rbc_data/sample_1.pt')
+        torch.load('../data/sample_0.pt')
     ]
     train_indices = list(range(100))
     valid_indices = list(range(100, 150))
