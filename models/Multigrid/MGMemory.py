@@ -2,7 +2,7 @@ import torch
 from torch import nn
 from torch.nn.functional import interpolate
 
-from convlstm import ConvLSTM
+from .convlstm import ConvLSTM
 
 class MGMemLayer(nn.Module):
 	"""

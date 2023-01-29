@@ -6,13 +6,9 @@ from torch.nn import functional as F
 
 from typing import Optional
 
-from MGconv import MGConvLayer
-from MGMemory import MGMemLayer
-
-from VPTR.VidHRFormer_modules import VidHRFormerBlockEnc
-from VPTR.position_encoding import PositionEmbeddding1D, PositionEmbeddding2D
-
-from MGBlockEnc import MGBlockEnc
+from .Multigrid.MGconv import MGConvLayer
+from .Multigrid.MGMemory import MGMemLayer
+from .MGBlockEnc import MGBlockEnc
 
 class MGxTransformer(nn.Module):
     def __init__(self, frame_shape, num_past_frames = 16, num_future_frames = 4,

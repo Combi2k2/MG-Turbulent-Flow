@@ -1,5 +1,5 @@
-from VPTR.VidHRFormer_modules import VidHRFormerBlockEnc
-from VPTR.position_encoding import PositionEmbeddding1D, PositionEmbeddding2D
+from .VPTR.VidHRFormer_modules import VidHRFormerBlockEnc
+from .VPTR.position_encoding import PositionEmbeddding1D, PositionEmbeddding2D
 from torch import nn
 from torch import Tensor
 

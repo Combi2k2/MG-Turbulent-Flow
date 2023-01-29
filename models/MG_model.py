@@ -1,8 +1,8 @@
 from torch import nn
 from torch.nn import functional as F
 
-from MGconv import MGConvLayer
-from MGMemory import MGMemLayer
+from .Multigrid.MGconv import MGConvLayer
+from .Multigrid.MGMemory import MGMemLayer
 
 from typing import Optional
 
@@ -90,9 +90,9 @@ class MG(nn.Module):
             output_dims, output_grids, lstm_states = mem_layer(prev_grids, T)
             output_grids_list.append(output_grids)
             
-            if lay_ind % 2 == 0 and lay_ind > 0:
-                for scale in range(len(output_grids)):
-                    output_grids_list[-1][scale] = self.residual_conn(output_grids_list[-3][scale], output_grids_list[-1][scale])
+            # if lay_ind % 2 == 0 and lay_ind > 0:
+            #     for scale in range(len(output_grids)):
+            #         output_grids_list[-1][scale] = self.residual_conn(output_grids_list[-3][scale], output_grids_list[-1][scale])
                 
             prev_grids = output_grids_list[-1]
         
