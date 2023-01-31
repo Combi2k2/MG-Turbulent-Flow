@@ -11,12 +11,12 @@ import numpy as np
 import math
 class MG(nn.Module):
     def __init__(self, frame_shape, num_past_frames = 16, num_future_frames = 4,
-        mem_hidden_dims: Optional[list[int]] = None,
-        mem_start_levels: Optional[list[int]] = None,
-        mem_end_levels: Optional[list[int]] = None,
-        gen_hidden_dims: Optional[list[int]] = None,
-        gen_start_levels: Optional[list[int]] = None,
-        gen_end_levels: Optional[list[int]] = None
+        mem_hidden_dims = None,
+        mem_start_levels = None,
+        mem_end_levels = None,
+        gen_hidden_dims = None,
+        gen_start_levels = None,
+        gen_end_levels = None
     ):
         super(MG, self).__init__()
         self.frame_shape = frame_shape
