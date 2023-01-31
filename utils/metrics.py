@@ -1,6 +1,8 @@
 import torch
 import numpy as np
-import radialProfile
+
+from .radialProfile import *
+
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class MagnitudeLoss(torch.nn.Module):
@@ -145,7 +147,7 @@ def tke2spectrum(tensor):
         sp = np.fft.fft2(bt_tke[i])
         sp = np.fft.fftshift(sp)
         sp = np.real(sp*np.conjugate(sp))
-        sp1Ds.append(radialProfile.azimuthalAverage(sp))
+        sp1Ds.append(azimuthalAverage(sp))
     return torch.from_numpy(np.array(sp1Ds)).float().to(device)
 
 class SpectrumLoss(torch.nn.Module):
