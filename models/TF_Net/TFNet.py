@@ -51,42 +51,57 @@ class Encoder(nn.Module):
 
 
 class TF_Net(nn.Module):
-    def __init__(self, input_channels, output_channels, kernel_size, dropout_rate, time_range):
+    def __init__(self, frame_shape, num_past_frames = 16, num_future_frames = 4, dropout_rate = 0.2):
         super(TF_Net, self).__init__()
-        self.spatial_filter  = nn.Conv2d(1, 1, kernel_size = 3, padding = 1, bias = False)   
-        self.temporal_filter = nn.Conv2d(time_range, 1, kernel_size = 1, padding = 0, bias = False)
-        self.input_channels = input_channels
-        self.time_range = time_range
         
-        self.encoder1 = Encoder(input_channels, kernel_size, dropout_rate)
-        self.encoder2 = Encoder(input_channels, kernel_size, dropout_rate)
-        self.encoder3 = Encoder(input_channels, kernel_size, dropout_rate)
+        self.frame_shape = frame_shape
+        self.num_past_frames = num_past_frames
+        self.num_future_frames = num_future_frames
+        
+        C, _, _ = frame_shape
+        
+        self.time_range = self.num_past_frames // 4
+        self.input_channels = C * (num_past_frames - self.time_range)
+        
+        self.spatial_filter  = nn.Conv2d(1, 1, kernel_size = 3, padding = 1, bias = False)   
+        self.temporal_filter = nn.Conv2d(self.time_range, 1, kernel_size = 1, padding = 0, bias = False)
+        
+        self.encoder1 = Encoder(self.input_channels, kernel_size = 5, dropout_rate = dropout_rate)
+        self.encoder2 = Encoder(self.input_channels, kernel_size = 5, dropout_rate = dropout_rate)
+        self.encoder3 = Encoder(self.input_channels, kernel_size = 5, dropout_rate = dropout_rate)
         
         self.deconv3 = deconv(512, 256)
         self.deconv2 = deconv(256, 128)
         self.deconv1 = deconv(128, 64)
         self.deconv0 = deconv(64, 32)
-        self.output_layer = nn.Conv2d(32 + input_channels, output_channels, kernel_size=kernel_size,
-                                      padding=(kernel_size - 1) // 2)
         
-    def forward(self, xx):
-        xx_len = xx.shape[1]
-        # u = u_mean + u_tilde + u_prime
-        u_tilde = self.spatial_filter(xx.reshape(xx.shape[0]*xx.shape[1], 1, xx.shape[3], xx.shape[3])).reshape(xx.shape[0], xx.shape[1], xx.shape[3], xx.shape[3])
-        # u_prime
-        u_prime = (xx - u_tilde)[:,(xx_len - self.input_channels):]
-        # u_mean
-        u_tilde2 = u_tilde.reshape(u_tilde.shape[0], u_tilde.shape[1]//2, 2, xx.shape[3], xx.shape[3])
-        u_mean = []
+        self.output_layer = nn.Conv2d(32 + self.input_channels, C * num_future_frames, kernel_size = 5, padding = 2)
+        
+    def forward(self, inputs):
+        N, T, C, H, W = inputs.size()
+        inputs = inputs.view(N, T * C, H, W)
+        
+        assert(T == self.num_past_frames)
 
-        for i in range(xx_len//2 - self.input_channels//2, xx_len//2):
-            cur_mean = torch.cat([self.temporal_filter(u_tilde2[:,i-self.time_range+1:i+1,0,:,:]).unsqueeze(2), 
-                                  self.temporal_filter(u_tilde2[:,i-self.time_range+1:i+1,1,:,:]).unsqueeze(2)], dim = 2)
+        # inputs = u_mean + u_tilde + u_prime
+        u_tilde = self.spatial_filter(inputs.reshape(N * T * C, 1, H, W)).reshape(N, T * C, H, W)
+        u_tilde2 = u_tilde.reshape(N, T, C, H, W)
+        # u_prime
+        u_prime = (inputs - u_tilde)[:,self.time_range * C:]
+        # u_mean
+        u_mean = []
+        
+        for i in range(self.time_range, T):
+            cur_mean = [self.temporal_filter(u_tilde2[:,i - self.time_range + 1: i + 1, c, :, :]).unsqueeze(2) for c in range(C)]
+            cur_mean = torch.cat(cur_mean, dim = 2)
+            
             u_mean.append(cur_mean)
+        
         u_mean = torch.cat(u_mean, dim = 1)
-        u_mean = u_mean.reshape(u_mean.shape[0], -1, xx.shape[3], xx.shape[3])
+        u_mean = u_mean.reshape(u_mean.shape[0], -1, H, W)
+
         # u_tilde
-        u_tilde = u_tilde[:,(self.time_range-1)*2:] - u_mean
+        u_tilde = u_tilde[:, self.time_range * C:] - u_mean
         out_conv1_mean, out_conv2_mean, out_conv3_mean, out_conv4_mean = self.encoder1(u_mean)
         out_conv1_tilde, out_conv2_tilde, out_conv3_tilde, out_conv4_tilde = self.encoder2(u_tilde)
         out_conv1_prime, out_conv2_prime, out_conv3_prime, out_conv4_prime = self.encoder3(u_prime)
@@ -95,8 +110,12 @@ class TF_Net(nn.Module):
         out_deconv2 = self.deconv2(out_conv3_mean + out_conv3_tilde + out_conv3_prime + out_deconv3)
         out_deconv1 = self.deconv1(out_conv2_mean + out_conv2_tilde + out_conv2_prime + out_deconv2)
         out_deconv0 = self.deconv0(out_conv1_mean + out_conv1_tilde + out_conv1_prime + out_deconv1)
-        concat0 = torch.cat((xx[:,(xx_len - self.input_channels):], out_deconv0), 1)
+        
+        concat0 = torch.cat((inputs[:, self.time_range * C:], out_deconv0), dim = 1)
+        
         out = self.output_layer(concat0)
+        out = out.view(N, self.num_future_frames, C, H, W)
+        
         return out
 
 if __name__ == '__main__':
@@ -106,13 +125,9 @@ if __name__ == '__main__':
     dropout_rate = 0
     kernel_size = 3
     
-    model = TF_Net(input_channels = input_length * 2, 
-                   output_channels = 2,
-                   kernel_size = kernel_size, 
-                   dropout_rate = dropout_rate,
-                   time_range = time_range)
+    model = TF_Net(frame_shape = (2, 64, 64))
     
-    inputs = torch.randn(16, (input_length + time_range - 1) * 2, 512, 512)
+    inputs = torch.randn(13, 16, 2, 64, 64)
     output = model(inputs)
 
     print(output.shape)
