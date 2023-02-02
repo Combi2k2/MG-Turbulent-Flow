@@ -37,6 +37,7 @@ def run_train(train_ds, model, optimizer, loss_func, batch_size, coef = 0, regul
             logging.info(f'    Batch {batch_idx + 1}: MSE = {train_mse[-1]}')
     
     return  round(np.sqrt(np.mean(train_mse)), 5)
+
 def run_eval(valid_ds, model, loss_function, batch_size = 32):
     valid_loader = DataLoader(valid_ds, batch_size = batch_size, shuffle = False, num_workers = 8)
     valid_mse = []
@@ -76,6 +77,7 @@ class TrainArgs:
         self.num_epochs = num_epochs
         self.learning_rate = learning_rate
         self.batch_size = batch_size
+
 class Trainer:
     def __init__(self,
         model,
@@ -101,7 +103,7 @@ class Trainer:
         logging.captureWarnings(True)
 
         if os.path.exists(checkpoint_args.saved_checkpoint):
-            loaded_checkpoint = torch.load(checkpoint_args.saved_checkpoint, map_location = torch.device(training_args.device))
+            loaded_checkpoint = torch.load(checkpoint_args.saved_checkpoint, map_location = device)
             self.start_epoch = loaded_checkpoint['epoch'] + 1
 
             self.model.load_state_dict(loaded_checkpoint['model'])
