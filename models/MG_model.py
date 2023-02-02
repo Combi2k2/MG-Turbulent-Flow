@@ -1,8 +1,8 @@
 from torch import nn
 from torch.nn import functional as F
 
-from Multigrid.MGconv import MGConvLayer
-from Multigrid.MGMemory import MGMemLayer
+from .Multigrid.MGconv import MGConvLayer
+from .Multigrid.MGMemory import MGMemLayer
 
 from typing import Optional
 
