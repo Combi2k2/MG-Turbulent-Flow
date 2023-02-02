@@ -2,7 +2,7 @@ import torch.nn as nn
 import torch
 
 class ConvLSTMCell(nn.Module):
-    def __init__(self, input_dim, hidden_dim, kernel_size, bias):
+    def __init__(self, input_dim, hidden_dim, kernel_size, bias, dropout):
         """
         Initialize ConvLSTM cell.
 
@@ -32,6 +32,8 @@ class ConvLSTMCell(nn.Module):
                               kernel_size = self.kernel_size,
                               padding = self.padding,
                               bias = self.bias)
+        
+        self.drop = nn.Dropout2d(p = dropout, inplace = True)
 
     def forward(self, input_tensor, cur_state):
         h_cur, c_cur = cur_state
@@ -39,6 +41,8 @@ class ConvLSTMCell(nn.Module):
         combined = torch.cat([input_tensor, h_cur], dim = 1)  # concatenate along channel axis
 
         combined_conv = self.conv(combined)
+        combined_conv = self.drop(combined_conv)
+        
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim = 1)
         i = torch.sigmoid(cc_i)
         f = torch.sigmoid(cc_f)
@@ -54,7 +58,6 @@ class ConvLSTMCell(nn.Module):
         height, width = image_size
         return (torch.zeros(batch_size, self.hidden_dim, height, width, device = self.conv.weight.device),
                 torch.zeros(batch_size, self.hidden_dim, height, width, device = self.conv.weight.device))
-
 
 class ConvLSTM(nn.Module):
     """
@@ -82,7 +85,7 @@ class ConvLSTM(nn.Module):
         >> h = last_states[0][0]  # 0 for layer index, 0 for h index
     """
 
-    def __init__(self, input_dim, hidden_dim, kernel_size, num_layers,
+    def __init__(self, input_dim, hidden_dim, kernel_size, num_layers, dropout = 0.2,
                  batch_first = False, bias = True, return_all_layers = False):
         super(ConvLSTM, self).__init__()
 
@@ -101,19 +104,21 @@ class ConvLSTM(nn.Module):
         self.batch_first = batch_first
         self.bias = bias
         self.return_all_layers = return_all_layers
+        self.dropout = dropout
 
         cell_list = []
         for i in range(0, self.num_layers):
             cur_input_dim = self.input_dim if i == 0 else self.hidden_dim[i - 1]
 
-            cell_list.append(ConvLSTMCell(input_dim   = cur_input_dim,
-                                          hidden_dim  = self.hidden_dim[i],
+            cell_list.append(ConvLSTMCell(input_dim = cur_input_dim,
+                                          hidden_dim = self.hidden_dim[i],
                                           kernel_size = self.kernel_size[i],
-                                          bias        = self.bias))
+                                          bias = self.bias,
+                                          dropout = self.dropout))
 
         self.cell_list = nn.ModuleList(cell_list)
 
-    def forward(self, input_tensor, hidden_state=None):
+    def forward(self, input_tensor, hidden_state = None):
         """
 
         Parameters
@@ -185,19 +190,18 @@ class ConvLSTM(nn.Module):
         return param
 
 class CLSTM(nn.Module):
-    def __init__(self, channels=2, hidden_dim = [64], num_layers=1):
+    def __init__(self, channels = 2, hidden_dim = [64], num_layers = 1, dropout = 0.2):
         super(CLSTM, self).__init__()
-        self.clstm= ConvLSTM(
-                         input_dim = channels,
-                         hidden_dim = hidden_dim,
-                         kernel_size = (3, 3),
-                         num_layers = num_layers,
-                         batch_first = True,
-                         bias = True,
-                         return_all_layers=False)
+        self.clstm = ConvLSTM(input_dim = channels,
+                        hidden_dim = hidden_dim,
+                        kernel_size = (5, 5),
+                        num_layers = num_layers,
+                        dropout = dropout,
+                        batch_first = True,
+                        bias = True,
+                        return_all_layers = False)
         
-        self.output_layer = nn.Conv2d(in_channels = hidden_dim[-1], out_channels = channels,
-                                kernel_size = 3, padding = 1)
+        self.output_layer = nn.Conv2d(in_channels = hidden_dim[-1], out_channels = channels, kernel_size = 5, padding = 2)
         
     def forward(self, xx):
         out = self.clstm(xx)[1][0][0]
