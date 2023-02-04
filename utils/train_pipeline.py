@@ -2,45 +2,42 @@ from __future__ import unicode_literals, print_function, division
 from torch.utils.data import DataLoader
 import torch
 import torch.nn as nn
-import torch.optim as optim
-import torch.nn.functional as F
 
 import numpy as np
 from datetime import datetime
 
 import logging.config
 import logging
-import argparse
 import os
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-def run_train(train_ds, model, optimizer, loss_func, batch_size, coef = 0, regularizer = None):
+def run_train(train_ds, model, optimizer, loss_function, batch_size, coef = 0, regularizer = None):
     train_loader = DataLoader(train_ds, batch_size = batch_size, shuffle = True, num_workers = 8)
-    train_mse = []
+    train_loss = []
     
-    for batch_idx, (inputs, target) in enumerate(train_loader):
+    for batch_idx, (inputs, target) in enumerate(train_loader):        
         inputs = inputs.to(device)
         target = target.to(device)
         
         output = model(inputs)
 
-        if coef:    loss = loss_func(output, target) + coef * regularizer(output, target)
-        else:       loss = loss_func(output, target)
+        if coef:    loss = loss_function(output, target) + coef * regularizer(output, target)
+        else:       loss = loss_function(output, target)
 
-        train_mse.append(loss.item() / target.shape[1])
+        train_loss.append(loss.item() / target.shape[1])
         
         optimizer.zero_grad();  loss.backward()
         optimizer.step()
         
         if (batch_idx % 20 == 19):
-            logging.info(f'    Batch {batch_idx + 1}: MSE = {train_mse[-1]}')
+            logging.info(f'    Batch {batch_idx + 1}: MSE = {train_loss[-1]}')
     
-    return  round(np.sqrt(np.mean(train_mse)), 5)
+    return  np.mean(train_loss)
 
 def run_eval(valid_ds, model, loss_function, batch_size = 32):
     valid_loader = DataLoader(valid_ds, batch_size = batch_size, shuffle = False, num_workers = 8)
-    valid_mse = []
+    valid_loss = []
     preds = []
     trues = []
     
@@ -56,14 +53,12 @@ def run_eval(valid_ds, model, loss_function, batch_size = 32):
             preds.append(np.array(ims).transpose(1, 0, 2, 3, 4))
             trues.append(target.cpu().data.numpy())
 
-            valid_mse.append(loss.item() / target.shape[1])
+            valid_loss.append(loss.item() / target.shape[1])
 
         preds = np.concatenate(preds, axis = 0)
         trues = np.concatenate(trues, axis = 0)
-          
-        valid_mse = round(np.sqrt(np.mean(valid_mse)), 5)
 
-    return valid_mse, preds, trues
+    return np.mean(valid_loss), preds, trues
 
 class CheckPointArgs:
     def __init__(self, model_name, experiment_name, checkpoint_dir = 'checkpoints'):
@@ -91,7 +86,9 @@ class Trainer:
         self.valid_ds = valid_ds
         
         self.model = model.to(device)
-        self.optim = torch.optim.Adam(model.parameters(), lr = training_args.learning_rate)
+        
+        self.optimizer = torch.optim.Adam(model.parameters(), lr = training_args.learning_rate, betas = (0.9, 0.999), weight_decay = 4e-4)
+        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size = 1, gamma = 0.9)
         
         self.checkpoint_args = checkpoint_args
         self.training_args = training_args
@@ -104,10 +101,8 @@ class Trainer:
 
         if os.path.exists(checkpoint_args.saved_checkpoint):
             loaded_checkpoint = torch.load(checkpoint_args.saved_checkpoint, map_location = device)
-            self.start_epoch = loaded_checkpoint['epoch'] + 1
 
             self.model.load_state_dict(loaded_checkpoint['model'])
-            self.optim.load_state_dict(loaded_checkpoint['optim'])
             self.best_model.load_state_dict(loaded_checkpoint['best_model'])
             
             self.train_mse = loaded_checkpoint['train_mse']
@@ -122,11 +117,14 @@ class Trainer:
             self.valid_mse = []
     
     def train(self):
-        for i in range(self.start_epoch + 1, self.training_args.num_epochs):
-            logging.info(f'Epoch {i + 1}: Start at {datetime.now()}')
+        for _ in range(self.training_args.num_epochs):
+            logging.info(f'Epoch {len(self.train_mse) + 1}: Start at {datetime.now()}')
             # run epochs:
+            torch.cuda.empty_cache()
+            self.scheduler.step()
+            
             self.model.train()
-            self.train_mse.append(run_train(self.train_ds, self.model, self.optim, nn.MSELoss(), self.training_args.batch_size))
+            self.train_mse.append(run_train(self.train_ds, self.model, self.optimizer, nn.MSELoss(), self.training_args.batch_size))
 
             self.model.eval()
             mse, _, _ = run_eval(self.valid_ds, self.model, nn.MSELoss(), self.training_args.batch_size)
@@ -139,9 +137,7 @@ class Trainer:
                 self.best_model = self.model
                 
             torch.save({
-                'epoch': i,
                 'model': self.model.state_dict(),
-                'optim': self.optim.state_dict(),
                 'train_mse': self.train_mse,
                 'valid_mse': self.valid_mse,
                 'min_mse': self.min_mse,
@@ -149,7 +145,7 @@ class Trainer:
             }, self.checkpoint_args.saved_checkpoint)
 
             logging.info(f'>>  Eval MSE = {self.valid_mse[-1]}')
-            logging.info(f'Epoch {i + 1}: Finished at {datetime.now()}')
+            logging.info(f'Epoch {len(self.train_mse)}: Start at {datetime.now()}')
 
 if __name__ == '__main__':
     from dataset import rbc_data
