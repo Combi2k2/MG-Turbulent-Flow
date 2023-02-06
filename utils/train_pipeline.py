@@ -145,7 +145,7 @@ class Trainer:
             }, self.checkpoint_args.saved_checkpoint)
 
             logging.info(f'>>  Eval MSE = {self.valid_mse[-1]}')
-            logging.info(f'Epoch {len(self.train_mse)}: Start at {datetime.now()}')
+            logging.info(f'Epoch {len(self.train_mse)}: Finish at {datetime.now()}')
 
 if __name__ == '__main__':
     from dataset import rbc_data
