@@ -121,11 +121,12 @@ class Trainer:
             logging.info(f'Epoch {len(self.train_mse) + 1}: Start at {datetime.now()}')
             # run epochs:
             torch.cuda.empty_cache()
-            self.scheduler.step()
             
             self.model.train()
             self.train_mse.append(run_train(self.train_ds, self.model, self.optimizer, nn.MSELoss(), self.training_args.batch_size))
 
+            self.scheduler.step()
+            
             self.model.eval()
             mse, _, _ = run_eval(self.valid_ds, self.model, nn.MSELoss(), self.training_args.batch_size)
             
