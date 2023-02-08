@@ -34,7 +34,7 @@ valid_ds = rbc_data(data_prep, train_indices, input_length, output_length, False
 model = MG((2, 64, 64), input_length, output_length)
 
 logging_configs = {
-    'filename' : f'multigrid_log.log',
+    'filename' : f'{checkpoint_args.checkpoint_dir}/log/multigrid_log.log',
     'level'    : logging.INFO,
 # 'format'   : "{asctime} {levelname:<8} {message}"
 }
