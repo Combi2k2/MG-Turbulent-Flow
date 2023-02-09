@@ -66,7 +66,7 @@ class ResnetEncoder(nn.Module):
             ]
         
         # resnet blocks
-        moduleList += [ResnetBlock(out_dim, padding_type = padding_type, use_dropout = use_dropout) for _ in range(3)]
+        moduleList += [ResnetBlock(out_dim, padding_type = padding_type, use_dropout = use_dropout) for _ in range(2)]
         moduleList += [nn.ReLU()]
         
         self.model = nn.Sequential(*moduleList)
