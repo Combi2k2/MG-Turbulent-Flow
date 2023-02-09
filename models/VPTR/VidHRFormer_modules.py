@@ -60,8 +60,7 @@ class VidHRFormerBlockEnc(nn.Module):
         temporal_pos_embed: (T, C)
         Return: (N, T, C, H, W)
         """
-        N, T, C, H, W = x.shape
-        x = x.permute(0, 1, 3, 4, 2)
+        N, T, H, W, C = x.shape
         x = x + self.drop_path(self.SLMHSA(self.norm1(x), local_window_pos_embed)) #spatial local window self-attention, and skip connection
         
         #Conv feed-forward, different local window information interacts
@@ -83,7 +82,7 @@ class VidHRFormerBlockEnc(nn.Module):
         x1 = self.linear2(self.drop2(self.activation(self.linear1(x1))))
         x = x + self.drop3(x1)
 
-        x = x.reshape(T, N, H, W, C).permute(1, 0, 4, 2, 3)
+        x = x.reshape(N, T, H, W, C)
 
         return x
 
@@ -232,12 +231,12 @@ if __name__ == '__main__':
     temp_model = VidHRFormerBlockEnc(48, 48, 20, 4)
     
     pos1d = PositionEmbeddding1D()
-    temporal_pos = pos1d(L = 13, N = 1, E = 20)[:, 0, :]
+    temporal_pos = pos1d(L = 16, N = 1, E = 20)[:, 0, :]
     
     pos2d = PositionEmbeddding2D()
     lw_pos = pos2d(N = 1, E = 20, H = 48, W = 48)[0, ...].permute(1, 2, 0)
     
-    input = torch.randn(16, 13, 20, 48, 48)
+    input = torch.randn(13, 16, 48, 48, 20)
     output = temp_model(input, lw_pos, temporal_pos)
     
     print(output.shape)
