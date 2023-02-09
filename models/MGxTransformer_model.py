@@ -4,11 +4,9 @@ import math
 from torch import nn
 from torch.nn import functional as F
 
-from typing import Optional
-
-from VPTR.VPTR_modules import VPTREnc, VPTRDec, VPTRFormerFAR
-from Multigrid.MGconv import MGConvLayer
-from Multigrid.MGMemory import MGMemLayer
+from .VPTR.VPTR_modules import VPTREnc, VPTRDec, VPTRFormerFAR
+from .Multigrid.MGconv import MGConvLayer
+from .Multigrid.MGMemory import MGMemLayer
 
 class MGxTransformer(nn.Module):
     def __init__(self, frame_shape, num_past_frames = 16, num_future_frames = 4):
