@@ -20,12 +20,12 @@ class MGxTransformer(nn.Module):
         exponent = math.ceil(np.log(max(H, W)) / np.log(2))
         
         self.enc = VPTREnc(C, n_downsampling = exponent - 3)
-        self.dec = VPTRDec(C, n_downsampling = exponent - 3)
+        self.dec = VPTRDec(C << 3, n_downsampling = exponent - 3)
         
-        self.transformer = VPTRFormerFAR(num_past_frames, num_encoder_layers = 5, dropout = 0.2)
+        self.transformer = VPTRFormerFAR(num_past_frames, num_encoder_layers = 2, Spatial_FFN_hidden_ratio = 2, dropout = 0.2)
         self.gen_layers = nn.ModuleList()
         
-        self.gen_layers.append(MGConvLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, num_past_frames * C, num_future_frames * C << 3, 6))
+        self.gen_layers.append(MGConvLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, num_past_frames * C << 3, num_future_frames * C << 3, 6))
         self.gen_layers.append(MGConvLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, num_future_frames * C << 3, num_future_frames * C << 2, 7))
         self.gen_layers.append(MGConvLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, num_future_frames * C << 2, num_future_frames * C << 2, 8))
         self.gen_layers.append(MGConvLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, num_future_frames * C << 2, num_future_frames * C << 1, 9))
@@ -46,7 +46,7 @@ class MGxTransformer(nn.Module):
         
         feats = self.enc(inputs)
         feats = self.transformer(feats)
-        feats = self.dec(feats).view(N, T * C, new_H, new_W)
+        feats = self.dec(feats).view(N, T * C * 8, new_H, new_W)
         
         inputs_scale = [
             F.interpolate(feats, size = (1 << exponent, 1 << exponent), mode = 'nearest'),
