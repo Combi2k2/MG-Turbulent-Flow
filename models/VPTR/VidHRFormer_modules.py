@@ -1,11 +1,7 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-
-import math
 import copy
 
-from einops import rearrange
 from .MultiheadAttentionRPE import MultiheadAttentionRPE
 from .VidHRFormer_utils import DropPath, PadBlock, LocalPermuteModule
 
@@ -46,7 +42,11 @@ class VidHRFormerBlockEnc(nn.Module):
         self.drop_path = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
 
         self.norm3 = nn.LayerNorm(embed_dim)
-        self.temporal_MHSA = nn.MultiheadAttention(self.embed_dim, self.num_heads, dropout=dropout)
+        self.temporal_MHSA = nn.MultiheadAttention(self.embed_dim, self.num_heads, dropout = dropout)
+        
+        self.linear1 = nn.Linear(embed_dim, dim_feedforward)
+        self.linear2 = nn.Linear(dim_feedforward, embed_dim)
+        
         self.activation = nn.GELU()
         self.drop1 = nn.Dropout(dropout) if dropout > 0. else nn.Identity()
         self.drop2 = nn.Dropout(dropout) if dropout > 0. else nn.Identity()
@@ -78,6 +78,10 @@ class VidHRFormerBlockEnc(nn.Module):
                                               x1 + temporal_pos_embed[:, None, :], 
                                               x1, 
                                               attn_mask = attn_mask.to(x1.device))[0])
+        
+        x1 = self.norm4(x)
+        x1 = self.linear2(self.drop2(self.activation(self.linear1(x1))))
+        x = x + self.drop3(x1)
 
         x = x.reshape(T, N, H, W, C).permute(1, 0, 4, 2, 3)
 
