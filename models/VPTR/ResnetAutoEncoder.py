@@ -100,6 +100,7 @@ class ResnetDecoder(nn.Module):
 
         moduleList.append(nn.ReflectionPad2d(3))
         moduleList.append(nn.Conv2d(ngf, output_nc, kernel_size = 7, padding = 0))
+        moduleList.append(nn.ReLU(inplace = True))
 
         self.model = nn.Sequential(*moduleList)
     
