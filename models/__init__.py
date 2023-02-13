@@ -5,6 +5,7 @@ from .ConvFFN import ConvFFN
 from .ConvLSTM import CLSTM
 from .Unet import UNet
 from .TFNet import TF_Net
+from .FNO import FNO2d
 
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
