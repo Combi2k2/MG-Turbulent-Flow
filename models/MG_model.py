@@ -29,8 +29,8 @@ class MG(nn.Module):
         self.mem_layers.append(MGMemLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, C << 2, C << 3, 4))
         self.mem_layers.append(MGMemLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, C << 3, C << 3, 5))
         
-        self.gen_layers.append(MGConvLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, num_past_frames * C << 3, num_future_frames * C << 3, 6))
-        self.gen_layers.append(MGConvLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, num_future_frames * C << 3, num_future_frames * C << 2, 7))
+        self.gen_layers.append(MGConvLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, num_past_frames * C << 3, num_past_frames * C << 3, 6))
+        self.gen_layers.append(MGConvLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, num_past_frames * C << 3, num_future_frames * C << 2, 7))
         self.gen_layers.append(MGConvLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, num_future_frames * C << 2, num_future_frames * C << 2, 8))
         self.gen_layers.append(MGConvLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, num_future_frames * C << 2, num_future_frames * C << 1, 9))
         self.gen_layers.append(MGConvLayer(exponent - 1, exponent + 1, exponent - 1, exponent + 1, num_future_frames * C << 1, num_future_frames * C, 10))
