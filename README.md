@@ -35,3 +35,16 @@ Run the following command to start the training session:
 
 - [TF-Net](https://github.com/Rose-STL-Lab/Turbulent-Flow-Net)
 - [VPTR](https://github.com/XiYe20/VPTR)
+
+### Reference
+
+```bibtex
+@misc{nguyen2023neural,
+      title={Neural Multigrid Memory For Computational Fluid Dynamics}, 
+      author={Duc Minh Nguyen and Minh Chau Vu and Tuan Anh Nguyen and Tri Huynh and Nguyen Tri Nguyen and Truong Son Hy},
+      year={2023},
+      eprint={2306.12545},
+      archivePrefix={arXiv},
+      primaryClass={physics.flu-dyn}
+}
+```
