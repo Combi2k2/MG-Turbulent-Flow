@@ -1,7 +1,7 @@
 # MG-Turbulent-Flow
 
 ## [DataSet](https://drive.google.com/drive/folders/1VOtLjfAkCWJePiacoDxC-nrgCREKvrpE?usp=sharing.)
-## [Paper](https://www.overleaf.com/project/63711e51999d2cb512a281c0)
+## [Paper](https://arxiv.org/abs/2306.12545)
 
 Run the following command to create dataset for our model:
 
